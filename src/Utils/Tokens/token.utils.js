@@ -1,4 +1,16 @@
 import jwt from "jsonwebtoken";
+import { v4 as uuid } from "uuid";
+import { roleEnum } from "../../DB/Models/user.model.js";
+
+export const signatureEnum = {
+  ADMIN: "ADMIN",
+  USER: "USER",
+};
+
+export const tokenTypeEnum = {
+  ACCESS: "ACCESS",
+  REFRESH: "REFRESH",
+};
 
 export const generateToken = ({
   payload,
@@ -13,4 +25,51 @@ export const verifyToken = ({
   secretKey = process.env.TOKEN_ACCESS_SECRET,
 }) => {
   return jwt.verify(token, secretKey);
+};
+
+export const getSignature = async ({ signatureLevel = signatureEnum.USER }) => {
+  let signatures = { accessSignature: undefined, refreshSignature: undefined };
+  switch (signatureLevel) {
+    case signatureEnum.ADMIN:
+      signatures.accessSignature = process.env.TOKEN_ACCESS_ADMIN_SECRET;
+      signatures.refreshSignature = process.env.TOKEN_REFRESH_ADMIN_SECRET;
+      break;
+    default:
+      signatures.accessSignature = process.env.TOKEN_ACCESS_USER_SECRET;
+      signatures.refreshSignature = process.env.TOKEN_REFRESH_USER_SECRET;
+      break;
+  }
+  return signatures;
+};
+
+export const getNewCredintials = async (user) => {
+  const signatures = await getSignature({
+    signatureLevel:
+      user.role != roleEnum.USER ? signatureEnum.ADMIN : signatureEnum.USER,
+  });
+
+  const jwtid = uuid();
+
+  const accessToken = generateToken({
+    payload: { id: user._id, email: user.email },
+    secretKey: signatures.accessSignature,
+    options: {
+      expiresIn: parseInt(process.env.ACCESS_TOKEN_EXPIRES_IN),
+      issuer: "http://localhost:3000",
+      audience: "http://localhost:5000",
+      jwtid,
+    },
+  });
+
+  const refreshToken = generateToken({
+    payload: { id: user._id, email: user.email },
+    secretKey: signatures.refreshSignature,
+    options: {
+      expiresIn: parseInt(process.env.REFRESH_TOKEN_EXPIRES_IN),
+      issuer: "http://localhost:3000",
+      audience: "http://localhost:5000",
+      jwtid,
+    },
+  });
+  return { accessToken, refreshToken };
 };

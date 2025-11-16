@@ -10,6 +10,11 @@ export const providerEnum = {
   GOOGLE: "GOOGLE",
 };
 
+export const roleEnum = {
+  USER: "USER",
+  ADMIN: "ADMIN",
+};
+
 const userSchema = new mongoose.Schema(
   {
     firstName: {
@@ -54,7 +59,19 @@ const userSchema = new mongoose.Schema(
       },
       default: providerEnum.SYSTEM,
     },
+    role: {
+      type: String,
+      enum: {
+        values: Object.values(roleEnum),
+        message: "{VALUE} is not a valid entry",
+      },
+      default: roleEnum.USER,
+    },
     phone: String,
+    profilePhoto: String,
+    coverPhoto: [String],
+    cloudProfilePhoto: { public_id: String, secure_url: String },
+    cloudCoverPhoto: [{ public_id: String, secure_url: String }],
     confirmEmail: Date,
     confirmEmailOtp: String,
     confirmEmailOtpCreatedAt: Date,

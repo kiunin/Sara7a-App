@@ -1,23 +1,30 @@
 import * as dbService from "../DB/dbSerivce.js";
 import userModel from "../DB/Models/user.model.js";
-import { verifyToken } from "../Utils/Tokens/token.utils.js";
+import { getSignature, verifyToken } from "../Utils/Tokens/token.utils.js";
 import tokenModel from "../DB/Models/token.model.js";
 
-export const authentication = async (req, res, next) => {
-  const { authorization } = req.headers;
-  if (!authorization)
-    return next(new Error("authorization token is missing", { cause: 401 }));
-  if (!authorization.startsWith(process.env.TOKEN_PREFIX))
-    return next(new Error("Invalid authorization format", { cause: 400 }));
+export const tokenTypeEnum = {
+  ACCESS: "ACCESS",
+  REFRESH: "REFRESH",
+};
 
-  const token = authorization.split(" ")[1];
+export const decodedToken = async ({
+  authorization,
+  tokenType = tokenTypeEnum.ACCESS,
+  next,
+} = {}) => {
+  const { bearer, token } = authorization.split(" ");
+  if (!bearer || !token) return next("Invalid token", { cause: 400 });
+  let signature = await getSignature({ signatureLevel: bearer });
 
   const decoded = verifyToken({
     token,
-    secretKey: process.env.TOKEN_ACCESS_SECRET,
+    secretKey:
+      tokenType === tokenTypeEnum.ACCESS
+        ? signature.accessSignature
+        : signature.refreshSignature,
   });
   if (!decoded.jti) return next(new Error("Invalid token", { cause: 401 }));
-
   const revokedToken = await dbService.findOne({
     model: tokenModel,
     filter: { jwtid: decoded.jti },
@@ -28,8 +35,28 @@ export const authentication = async (req, res, next) => {
     model: userModel,
     id: decoded.id,
   });
-  if (!user) return next(new Error("User not found", { cause: 404 }));
-  req.user = user;
-  req.decoded = decoded;
-  next();
+  if (!user) return next(new Error("Account Not Registered", { cause: 404 }));
+  return { user, decoded };
+};
+
+export const authentication = ({ tokenType = tokenTypeEnum.ACCESS } = {}) => {
+  return async (req, res, next) => {
+    const { user, decoded } =
+      (await decodedToken({
+        authorization: req.headers.authorization,
+        tokenType,
+        next,
+      })) || {};
+    req.user = user;
+    req.decoded = decoded;
+    return next();
+  };
+};
+
+export const authorization = ({ accessRoles = [] } = {}) => {
+  return (req, res, next) => {
+    if (!accessRoles.includes(req.user.role))
+      return next(new Error("Unauthorized Access", { cause: 403 }));
+    return next();
+  };
 };

@@ -39,4 +39,15 @@ export const generalFields = {
       Types.ObjectId.isValid(value) || helper.message("Invalid objectId format")
     );
   }),
+  file: {
+    fieldname: joi.string(),
+    originalname: joi.string(),
+    encoding: joi.string(),
+    mimetype: joi.string(),
+    size: joi.number(),
+    destination: joi.string(),
+    filename: joi.string(),
+    finalPath: joi.string(),
+    path: joi.string(),
+  },
 };

@@ -10,6 +10,7 @@ import {
   resetPasswordSchema,
   updatePasswordSchema,
 } from "./auth.validation.js";
+import { tokenTypeEnum } from "../../Utils/Tokens/token.utils.js";
 
 const router = Router();
 router.post("/signup", validation(signupSchema), authService.signup);
@@ -19,8 +20,16 @@ router.patch(
   validation(confirmEmailSchema),
   authService.confirmEmail
 );
-router.post("/revoke-token", authentication, authService.logout);
-router.post("/refresh-token", authService.refreshToken);
+router.post(
+  "/revoke-token",
+  authentication({ tokenType: tokenTypeEnum.ACCESS }),
+  authService.logout
+);
+router.post(
+  "/refresh-token",
+  authentication({ tokenType: tokenTypeEnum.REFRESH }),
+  authService.refreshToken
+);
 router.patch(
   "/forgot-password",
   validation(forgotPasswordSchema),
@@ -35,7 +44,7 @@ router.patch(
 
 router.patch(
   "/update-password",
-  authentication,
+  authentication({ tokenType: tokenTypeEnum.ACCESS }),
   validation(updatePasswordSchema),
   authService.updatePassword
 );

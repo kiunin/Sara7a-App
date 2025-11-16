@@ -4,6 +4,7 @@ import messageRouter from "./Modules/Message/message.controller.js";
 import connectDB from "./DB/connection.js";
 import { globalErrorHandler } from "./Utils/globalErrorHandler.utils.js";
 import cors from "cors";
+import path from "node:path";
 
 const bootstrap = async (app, express) => {
   await connectDB();
@@ -14,6 +15,7 @@ const bootstrap = async (app, express) => {
     return res.status(200).json({ message: " Server is runningggg" });
   });
 
+  app.use("/uploads", express.static(path.resolve("./src/uploads")));
   app.use("/api/v1/auth", authRouter);
   app.use("/api/v1/user", userRouter);
   app.use("/api/v1/message", messageRouter);

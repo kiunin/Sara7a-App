@@ -5,7 +5,7 @@ import { asymmetricEncrypt } from "../../Utils/Encryption/encryption.utils.js";
 import { hash, compare } from "../../Utils/Hashing/hashing.utils.js";
 import eventEmitter from "../../Utils/Events/email.events.utils.js";
 import { customAlphabet } from "nanoid";
-import { generateToken, verifyToken } from "../../Utils/Tokens/token.utils.js";
+import { getNewCredintials } from "../../Utils/Tokens/token.utils.js";
 import { v4 as uuid } from "uuid";
 import tokenModel from "../../DB/Models/token.model.js";
 import { OAuth2Client } from "google-auth-library";
@@ -55,32 +55,12 @@ export const login = async (req, res, next) => {
   if (!checkUser.confirmEmail)
     return next(new Error("Confirm your Email", { cause: 400 }));
 
-  const accessToken = generateToken({
-    payload: { id: checkUser._id, email: checkUser.email },
-    secretKey: process.env.TOKEN_ACCESS_SECRET,
-    options: {
-      expiresIn: parseInt(process.env.ACCESS_TOKEN_EXPIRES_IN),
-      issuer: "http://localhost:3000",
-      audience: "http://localhost:5000",
-      jwtid: uuid(),
-    },
-  });
-
-  const refreshToken = generateToken({
-    payload: { id: checkUser._id, email: checkUser.email },
-    secretKey: process.env.TOKEN_REFRESH_SECRET,
-    options: {
-      expiresIn: parseInt(process.env.REFRESH_TOKEN_EXPIRES_IN),
-      issuer: "http://localhost:3000",
-      audience: "http://localhost:5000",
-      jwtid: uuid(),
-    },
-  });
+  const newCredintials = await getNewCredintials(checkUser);
   return successResponse({
     res,
     statusCode: 200,
     message: "User logged in successfully",
-    data: { accessToken, refreshToken },
+    data: { newCredintials },
   });
 };
 
@@ -159,24 +139,13 @@ export const logout = async (req, res, next) => {
 };
 
 export const refreshToken = async (req, res, next) => {
-  const { refreshtoken } = req.headers;
-  const decoded = verifyToken({
-    token: refreshtoken,
-    secretKey: process.env.TOKEN_REFRESH_SECRET,
-  });
-  const accessToken = generateToken({
-    payload: { id: decoded.id, email: decoded.email },
-    secretKey: process.env.TOKEN_ACCESS_SECRET,
-    options: {
-      expiresIn: parseInt(process.env.ACCESS_TOKEN_EXPIRES_IN),
-      jwtid: uuid(),
-    },
-  });
+  const user = req.user;
+  const newCredintials = await getNewCredintials(user);
   return successResponse({
     res,
     statusCode: 200,
     message: "Token refreshed successfully",
-    data: { accessToken },
+    data: { newCredintials },
   });
 };
 
@@ -312,32 +281,12 @@ export const loginWithGoogle = async (req, res, next) => {
 
   if (user) {
     if (user.provider === providerEnum.GOOGLE) {
-      const accessToken = generateToken({
-        payload: { id: user._id, email: user.email },
-        secretKey: process.env.TOKEN_ACCESS_SECRET,
-        options: {
-          expiresIn: parseInt(process.env.ACCESS_TOKEN_EXPIRES_IN),
-          issuer: "http://localhost:3000",
-          audience: "http://localhost:5000",
-          jwtid: uuid(),
-        },
-      });
-
-      const refreshToken = generateToken({
-        payload: { id: user._id, email: user.email },
-        secretKey: process.env.TOKEN_REFRESH_SECRET,
-        options: {
-          expiresIn: parseInt(process.env.REFRESH_TOKEN_EXPIRES_IN),
-          issuer: "http://localhost:3000",
-          audience: "http://localhost:5000",
-          jwtid: uuid(),
-        },
-      });
+      const newCredintials = await getNewCredintials(user);
       return successResponse({
         res,
         statusCode: 200,
         message: "User logged in successfully",
-        data: { accessToken, refreshToken },
+        data: { newCredintials },
       });
     }
   }
@@ -355,32 +304,12 @@ export const loginWithGoogle = async (req, res, next) => {
       },
     ],
   });
-  const accessToken = generateToken({
-    payload: { id: newUser._id, email: newUser.email },
-    secretKey: process.env.TOKEN_ACCESS_SECRET,
-    options: {
-      expiresIn: parseInt(process.env.ACCESS_TOKEN_EXPIRES_IN),
-      issuer: "http://localhost:3000",
-      audience: "http://localhost:5000",
-      jwtid: uuid(),
-    },
-  });
-
-  const refreshToken = generateToken({
-    payload: { id: newUser._id, email: newUser.email },
-    secretKey: process.env.TOKEN_REFRESH_SECRET,
-    options: {
-      expiresIn: parseInt(process.env.REFRESH_TOKEN_EXPIRES_IN),
-      issuer: "http://localhost:3000",
-      audience: "http://localhost:5000",
-      jwtid: uuid(),
-    },
-  });
+  const newCredintials = await getNewCredintials(newUser);
 
   return successResponse({
     res,
     statusCode: 200,
     message: "User created successfully",
-    data: { accessToken, refreshToken },
+    data: { newCredintials },
   });
 };
