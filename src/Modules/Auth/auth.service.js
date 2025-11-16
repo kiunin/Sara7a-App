@@ -11,7 +11,8 @@ import tokenModel from "../../DB/Models/token.model.js";
 import { OAuth2Client } from "google-auth-library";
 
 export const signup = async (req, res, next) => {
-  const { firstName, lastName, email, password, gender, phone } = req.body;
+  const { firstName, lastName, email, password, gender, phone, role } =
+    req.body;
 
   const checkUser = await dbService.findOne({
     model: userModel,
