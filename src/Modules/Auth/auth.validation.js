@@ -12,7 +12,7 @@ export const signupSchema = {
     confirmPassword: generalFields.confirmPassword,
     gender: generalFields.gender,
     phone: generalFields.phone,
-    role: joi.string().valid(roleEnum).default(roleEnum.USER),
+    role: joi.string().valid("USER", "ADMIN").default(roleEnum.USER),
   }),
 };
 

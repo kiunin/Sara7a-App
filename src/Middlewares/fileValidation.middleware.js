@@ -5,7 +5,7 @@ import { fileValidation } from "../Utils/multer/local.multer.js";
 export const fileValidationMiddleware = async (req, res, next) => {
   try {
     const filePath = req.file.path;
-    const buffer = fs.readFileSync(filePath);
+    const buffer = await fs.readFileSync(filePath);
     const type = await fileTypeFromBuffer(buffer);
     let allowedValues = Object.values(fileValidation).flat();
     if (!type || !allowedValues.includes(type.mime)) {
@@ -13,6 +13,6 @@ export const fileValidationMiddleware = async (req, res, next) => {
     }
     return next();
   } catch (error) {
-    return next(new Error("Internal Server Error"));
+    return next(error);
   }
 };
