@@ -13,8 +13,9 @@ export const decodedToken = async ({
   tokenType = tokenTypeEnum.ACCESS,
   next,
 } = {}) => {
-  const { bearer, token } = authorization.split(" ");
-  if (!bearer || !token) return next("Invalid token", { cause: 400 });
+  const [bearer, token] = authorization.split(" ");
+  if (!bearer || !token)
+    return next(new Error("Invalid token", { cause: 400 }));
   let signature = await getSignature({ signatureLevel: bearer });
 
   const decoded = verifyToken({

@@ -24,4 +24,14 @@ eventEmitter.on("forgotPassword", async (data) => {
   });
 });
 
+eventEmitter.on("2FA", async (data) => {
+  await sendEmail({
+    to: data.to,
+    subject: emailSubject.twoFA,
+    html: template(data.otp, data.firstName, emailSubject.twoFA),
+  }).catch((err) => {
+    console.log(`Error in sending confirmation email: ${err}`);
+  });
+});
+
 export default eventEmitter;

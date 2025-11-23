@@ -52,3 +52,10 @@ export const updatePasswordSchema = {
     confirmPassword: generalFields.confirmPassword,
   }),
 };
+
+export const twoFASchema = {
+  body: joi.object({
+    email: generalFields.email.required(),
+    otp: generalFields.otp.required(),
+  }),
+};

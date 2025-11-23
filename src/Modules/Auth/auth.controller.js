@@ -9,27 +9,35 @@ import {
   forgotPasswordSchema,
   resetPasswordSchema,
   updatePasswordSchema,
+  twoFASchema,
 } from "./auth.validation.js";
 import { tokenTypeEnum } from "../../Utils/Tokens/token.utils.js";
 
 const router = Router();
 router.post("/signup", validation(signupSchema), authService.signup);
-router.post("/login", validation(loginSchema), authService.login);
+
 router.patch(
   "/confirm-email",
   validation(confirmEmailSchema),
   authService.confirmEmail
 );
+
+router.post("/login", validation(loginSchema), authService.login);
+
+router.patch("/2FA", validation(twoFASchema), authService.twoFA);
+
 router.post(
   "/revoke-token",
   authentication({ tokenType: tokenTypeEnum.ACCESS }),
   authService.logout
 );
+
 router.post(
   "/refresh-token",
   authentication({ tokenType: tokenTypeEnum.REFRESH }),
   authService.refreshToken
 );
+
 router.patch(
   "/forgot-password",
   validation(forgotPasswordSchema),

@@ -59,3 +59,11 @@ export const findOneAndUpdate = async ({
 } = {}) => {
   return model.findOneAndUpdate(filter, data, options);
 };
+
+export const findOneAndDelete = async ({
+  model,
+  filter = {},
+  options = { runValidators: true },
+} = {}) => {
+  return model.findOneAndDelete(filter, options);
+};

@@ -37,3 +37,15 @@ export const profileCoverSchema = {
     })
     .required(),
 };
+
+export const freezeAccountSchema = {
+  params: joi.object({
+    userId: generalFields.id,
+  }),
+};
+
+export const restoreAccountSchema = {
+  params: joi.object({
+    userId: generalFields.id.required(),
+  }),
+};

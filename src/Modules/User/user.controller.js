@@ -11,9 +11,17 @@ import {
 } from "../../Utils/multer/local.multer.js";
 
 import { validation } from "../../Middlewares/validation.middleware.js";
-import { profileImageSchema, profileCoverSchema } from "./user.validation.js";
+import {
+  profileImageSchema,
+  profileCoverSchema,
+  freezeAccountSchema,
+  restoreAccountSchema,
+} from "./user.validation.js";
 import { fileValidationMiddleware } from "../../Middlewares/fileValidation.middleware.js";
 import { cloudFileUpload } from "../../Utils/multer/cloud.multer.js";
+import { roleEnum } from "../../DB/Models/user.model.js";
+// import { valid } from "joi";
+// import { use } from "react";
 
 const router = Router();
 
@@ -42,7 +50,7 @@ router.patch(
 router.patch(
   "/cloud-profile-image",
   authentication({ tokenType: tokenTypeEnum.ACCESS }),
-  authorization({ accessRoles: ["USER"] }),
+  authorization({ accessRoles: ["USER", "ADMIN"] }),
   cloudFileUpload({
     validation: fileValidation.images,
   }).single("profileImage"),
@@ -72,6 +80,30 @@ router.patch(
   }).array("coverImage", 4),
   fileValidationMiddleware,
   userService.updateCloudCoverImage
+);
+
+router.delete(
+  "{/:userId}/freeze-account",
+  authentication({ tokenType: tokenTypeEnum.ACCESS }),
+  authorization({ accessRoles: [roleEnum.ADMIN, roleEnum.USER] }),
+  validation(freezeAccountSchema),
+  userService.freezeAccount
+);
+
+router.patch(
+  "/:userId/restore-account",
+  authentication({ tokenType: tokenTypeEnum.ACCESS }),
+  authorization({ accessRoles: [roleEnum.ADMIN, roleEnum.USER] }),
+  validation(restoreAccountSchema),
+  userService.restoreAccount
+);
+
+router.delete(
+  "/:userId/delete-account",
+  authentication({ tokenType: tokenTypeEnum.ACCESS }),
+  authorization({ accessRoles: [roleEnum.ADMIN] }),
+  validation(restoreAccountSchema),
+  userService.deleteAccount
 );
 
 export default router;

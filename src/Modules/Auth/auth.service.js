@@ -6,7 +6,6 @@ import { hash, compare } from "../../Utils/Hashing/hashing.utils.js";
 import eventEmitter from "../../Utils/Events/email.events.utils.js";
 import { customAlphabet } from "nanoid";
 import { getNewCredintials } from "../../Utils/Tokens/token.utils.js";
-import { v4 as uuid } from "uuid";
 import tokenModel from "../../DB/Models/token.model.js";
 import { OAuth2Client } from "google-auth-library";
 
@@ -32,6 +31,7 @@ export const signup = async (req, res, next) => {
         phone: asymmetricEncrypt(phone),
         confirmEmailOtp: await hash({ plainText: otp }),
         confirmEmailOtpCreatedAt: new Date(),
+        role,
       },
     ],
   });
@@ -41,27 +41,6 @@ export const signup = async (req, res, next) => {
     statusCode: 201,
     message: "User created successfully",
     data: { user },
-  });
-};
-
-export const login = async (req, res, next) => {
-  const { email, password } = req.body;
-  const checkUser = await dbService.findOne({
-    model: userModel,
-    filter: { email },
-  });
-  if (!checkUser) return next(new Error("User not found", { cause: 404 }));
-  if (!(await compare({ plainText: password, hash: checkUser.password })))
-    return next(new Error("Invalid Email or password", { cause: 400 }));
-  if (!checkUser.confirmEmail)
-    return next(new Error("Confirm your Email", { cause: 400 }));
-
-  const newCredintials = await getNewCredintials(checkUser);
-  return successResponse({
-    res,
-    statusCode: 200,
-    message: "User logged in successfully",
-    data: { newCredintials },
   });
 };
 
@@ -118,6 +97,90 @@ export const confirmEmail = async (req, res, next) => {
     res,
     statusCode: 200,
     message: "Email confirmed successfully",
+  });
+};
+
+export const login = async (req, res, next) => {
+  const { email, password } = req.body;
+  const checkUser = await dbService.findOne({
+    model: userModel,
+    filter: { email },
+  });
+  if (!checkUser) return next(new Error("User not found", { cause: 404 }));
+  if (!(await compare({ plainText: password, hash: checkUser.password })))
+    return next(new Error("Invalid Email or password", { cause: 400 }));
+  if (!checkUser.confirmEmail)
+    return next(new Error("Confirm your Email", { cause: 400 }));
+
+  const otp = customAlphabet("0123456789qwearszdtxfcgyvbhunjimoklp", 6)();
+  await dbService.updateOne({
+    model: userModel,
+    filter: { email },
+    data: {
+      twoFAOtp: await hash({ plainText: otp }),
+      twoFAOtpCreatedAt: new Date(),
+    },
+  });
+  eventEmitter.emit("2FA", { to: email, otp, firstName: checkUser.firstName });
+
+  return successResponse({
+    res,
+    statusCode: 200,
+    message: "2-Step Verification required, Please check your Email",
+    data: { checkUser },
+  });
+};
+
+export const twoFA = async (req, res, next) => {
+  const { email, otp } = req.body;
+  const checkUser = await dbService.findOne({
+    model: userModel,
+    filter: {
+      email,
+      twoFAOtp: { $exists: true },
+    },
+  });
+  if (!checkUser) return next(new Error("User not found.", { cause: 404 }));
+  //timer
+  if (
+    Date.now() - new Date(checkUser.twoFAOtpCreatedAt).getTime() >
+    60 * 2 * 1000
+  ) {
+    const newOtp = customAlphabet("0123456789qwearszdtxfcgyvbhunjimoklp", 6)();
+    eventEmitter.emit("2FA", {
+      to: email,
+      otp: newOtp,
+      firstName: checkUser.firstName,
+    });
+    await dbService.updateOne({
+      model: userModel,
+      filter: { email },
+      data: {
+        twoFAOtp: await hash({ plainText: newOtp }),
+        twoFAOtpCreatedAt: new Date(),
+        $inc: { __v: 1 },
+      },
+    });
+    return next(new Error("OTP expired", { cause: 400 }));
+  }
+
+  if (!(await compare({ plainText: otp, hash: checkUser.twoFAOtp })))
+    return next(new Error("Invalid OTP", { cause: 400 }));
+
+  await dbService.updateOne({
+    model: userModel,
+    filter: { email },
+    data: {
+      $unset: { twoFAOtp: 1, twoFAOtpCreatedAt: 1 },
+      $inc: { __v: 1 },
+    },
+  });
+  const newCredintials = await getNewCredintials(checkUser);
+  return successResponse({
+    res,
+    statusCode: 200,
+    message: "User logged in successfully",
+    data: { newCredintials },
   });
 };
 

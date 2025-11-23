@@ -51,7 +51,7 @@ export const getNewCredintials = async (user) => {
   const jwtid = uuid();
 
   const accessToken = generateToken({
-    payload: { id: user._id, email: user.email },
+    payload: { id: user._id, email: user.email, role: user.role },
     secretKey: signatures.accessSignature,
     options: {
       expiresIn: parseInt(process.env.ACCESS_TOKEN_EXPIRES_IN),
@@ -62,7 +62,7 @@ export const getNewCredintials = async (user) => {
   });
 
   const refreshToken = generateToken({
-    payload: { id: user._id, email: user.email },
+    payload: { id: user._id, email: user.email, role: user.role },
     secretKey: signatures.refreshSignature,
     options: {
       expiresIn: parseInt(process.env.REFRESH_TOKEN_EXPIRES_IN),

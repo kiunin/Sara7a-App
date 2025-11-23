@@ -1,7 +1,7 @@
 import * as dbService from "../../DB/dbSerivce.js";
 import { asymmetricdecrypt } from "../../Utils/Encryption/encryption.utils.js";
 import { successResponse } from "../../Utils/successResponse.utils.js";
-import userModel from "../../DB/Models/user.model.js";
+import userModel, { roleEnum } from "../../DB/Models/user.model.js";
 import { cloudinaryConfig } from "../../Utils/multer/cloudinary.config.js";
 
 export const listAllUsers = async (req, res, next) => {
@@ -120,4 +120,92 @@ export const updateCloudCoverImage = async (req, res, next) => {
   });
 };
 
-//destroy imagess
+export const freezeAccount = async (req, res, next) => {
+  const { userId } = req.params;
+  if (userId && req.user.role != roleEnum.ADMIN) {
+    return next(new Error("You are not authorized to freeze Account"));
+  }
+  const updatedUser = await dbService.findOneAndUpdate({
+    model: userModel,
+    filter: {
+      _id: userId || req.user._id,
+      freezedAt: { $exists: false },
+    },
+    data: {
+      freezedAt: Date.now(),
+      freezedBy: req.user._id,
+      $inc: { __v: 1 },
+      $unset: { restoredBy: true, restoredAt: true },
+    },
+  });
+  return updatedUser
+    ? successResponse({
+        res,
+        statusCode: 200,
+        message: "Profile Freezed succeefully",
+        data: { user: updatedUser },
+      })
+    : next(new Error("Invalid Account"));
+};
+
+export const restoreAccount = async (req, res, next) => {
+  //const { userId } = req.params;
+  const user = await dbService.findOne({
+    model: userModel,
+    filter: {
+      _id: req.user._id,
+      freezedBy: { $exists: true },
+      freezedAt: { $exists: true },
+    },
+  });
+  if (!user) {
+    return next(new Error("Account is not freezed"));
+  }
+
+  if (req.user._id.toString() != user.freezedBy.toString()) {
+    return next(new Error("You are not authorized to restore Account"));
+  }
+
+  const updatedUser = await dbService.updateOne({
+    model: userModel,
+    filter: {
+      _id: req.user._id,
+    },
+    data: {
+      $unset: { freezedAt: true, freezedBy: true },
+      restoredAt: Date.now(),
+      restoredBy: req.user._id,
+      $inc: { __v: 1 },
+    },
+  });
+  return updatedUser
+    ? successResponse({
+        res,
+        statusCode: 200,
+        message: "Profile Restored succeefully",
+        data: { user: updatedUser },
+      })
+    : next(new Error("Invalid Account"));
+};
+
+export const deleteAccount = async (req, res, next) => {
+  const { userId } = req.params;
+  if (req.user.role != roleEnum.ADMIN) {
+    return next(new Error("You are not authorized to delete Accounts"));
+  }
+
+  const deletedUser = await dbService.findOneAndDelete({
+    model: userModel,
+    filter: {
+      _id: userId,
+    },
+  });
+  return deletedUser
+    ? successResponse({
+        res,
+        statusCode: 200,
+        message: "Profile deleted succeefully",
+        data: { user: deletedUser },
+      })
+    : next(new Error("Invalid Account"));
+};
