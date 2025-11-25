@@ -58,7 +58,6 @@ export const confirmEmail = async (req, res, next) => {
     return next(
       new Error("User not found or email already confirmed", { cause: 404 })
     );
-  //timer
   if (
     Date.now() - new Date(checkUser.confirmEmailOtpCreatedAt).getTime() >
     60 * 2 * 1000
@@ -141,7 +140,7 @@ export const twoFA = async (req, res, next) => {
     },
   });
   if (!checkUser) return next(new Error("User not found.", { cause: 404 }));
-  //timer
+
   if (
     Date.now() - new Date(checkUser.twoFAOtpCreatedAt).getTime() >
     60 * 2 * 1000

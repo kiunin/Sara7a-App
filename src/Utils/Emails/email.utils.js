@@ -17,7 +17,7 @@ export async function sendEmail({
     },
   });
 
-  const info = await transporter.sendMail({
+  await transporter.sendMail({
     from: `"Route Academy" <${process.env.EMAIL}>`,
     to,
     subject,
@@ -27,8 +27,6 @@ export async function sendEmail({
     cc,
     bcc,
   });
-
-  console.log("Message sent:", info.messageId);
 }
 
 export const emailSubject = {

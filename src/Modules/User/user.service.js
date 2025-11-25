@@ -9,9 +9,7 @@ export const listAllUsers = async (req, res, next) => {
     model: userModel,
     populate: [{ path: "messages", select: "content -_id -receiverId" }],
   });
-  // users = users.map((user) => {
-  //   return { ...user._doc, phone: asymmetricdecrypt(user.phone) };
-  // });
+
   return successResponse({
     res,
     statusCode: 200,
@@ -149,7 +147,6 @@ export const freezeAccount = async (req, res, next) => {
 };
 
 export const restoreAccount = async (req, res, next) => {
-  //const { userId } = req.params;
   const user = await dbService.findOne({
     model: userModel,
     filter: {
